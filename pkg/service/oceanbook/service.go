@@ -113,5 +113,5 @@ func (s *Service) CancelOrder(ctx context.Context, request *oceanbookpb.CancelOr
 		ID: request.OrderId,
 	})
 
-	return nil, nil
+	return &oceanbookpb.CancelOrderResponse{}, nil
 }
