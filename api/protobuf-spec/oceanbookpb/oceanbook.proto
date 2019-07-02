@@ -1,0 +1,81 @@
+syntax = 'proto3';
+
+package oceanbook;
+
+option go_package = "github.com/draveness/oceanbook/api/protobuf-spec/oceanbookpb";
+
+import 'github.com/golang/protobuf/ptypes/timestamp/timestamp.proto';
+
+message Order {
+    enum Side {
+        ASK = 0;
+        BID = 1;
+    }
+    enum State {
+        PENDING = 0;
+        FILLED = 1;
+        CANCELLED = 2;
+    }
+    uint64 id = 1;
+    string price = 2;
+    string quantity = 3;
+    Side side = 4;
+    string pair = 5;
+    State state = 6;
+}
+
+message Trade {
+    uint64 id = 1;
+    string pair = 2;
+    string price = 3;
+    string quantity = 4;
+    uint64 taker_id = 5;
+    uint64 maker_id = 6;
+    google.protobuf.Timestamp created_at = 7;
+}
+
+message InsertOrderRequest {
+    uint64 id = 1;
+    string price = 2;
+    string quantity = 3;
+    Order.Side side = 4;
+    string pair = 5;
+}
+
+message CancelOrderRequest {
+    uint64 order_id = 1;
+    string pair = 2;
+}
+
+message CancelOrderResponse {
+}
+
+message NewOrderBookRequest {
+    string pair = 1;
+}
+
+message NewOrderBookResponse{
+}
+
+message GetDepthRequest {
+    string pair = 1;
+}
+
+message PriceLevel {
+    string price = 1;
+    string quantity = 2;
+    string orders_count = 3;
+}
+
+message Depth {
+    string pair = 1;
+    repeated PriceLevel bids = 2;
+    repeated PriceLevel asks = 3;
+}
+
+service Oceanbook {
+    rpc NewOrderBook(NewOrderBookRequest) returns (NewOrderBookResponse) {}
+    rpc InsertOrder(InsertOrderRequest) returns (stream Trade) {}
+    rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {}
+    rpc GetDepth(GetDepthRequest) returns (Depth) {}
+}
