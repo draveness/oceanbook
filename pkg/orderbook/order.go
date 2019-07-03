@@ -9,13 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// OrderSide is the orders' side.
 type OrderSide string
 
 const (
+	// OrderSideAsk represents the ask order side.
 	OrderSideAsk OrderSide = "ask"
+
+	// OrderSideBid represents the bid order side.
 	OrderSideBid OrderSide = "bid"
 )
 
+// Order .
 type Order struct {
 	ID             uint64          `json:"id"`
 	Side           OrderSide       `json:"side"`
@@ -26,6 +31,7 @@ type Order struct {
 	CreatedAt      time.Time       `json:"created_at"`
 }
 
+// OrderKey is used to sort orders in red black tree.
 type OrderKey struct {
 	ID        uint64          `json:"id"`
 	Side      OrderSide       `json:"side"`
@@ -33,6 +39,7 @@ type OrderKey struct {
 	CreatedAt time.Time       `json:"created_at"`
 }
 
+// Key returns a OrderKey.
 func (o *Order) Key() *OrderKey {
 	return &OrderKey{
 		ID:        o.ID,
@@ -42,29 +49,36 @@ func (o *Order) Key() *OrderKey {
 	}
 }
 
+// Filled returns true when its filled quantity equals to quantity.
 func (o *Order) Filled() bool {
 	return o.Quantity.Equal(o.FilledQuantity)
 }
 
+// PendingQuantity is the remaing quantity.
 func (o *Order) PendingQuantity() decimal.Decimal {
 	return o.Quantity.Sub(o.FilledQuantity)
 }
 
+// Fill updates order filled quantity with passing arguments.
 func (o *Order) Fill(quantity decimal.Decimal) {
 	o.FilledQuantity = o.FilledQuantity.Add(quantity)
 }
 
+// IsLimit returns true when the order is limit order.
 func (o *Order) IsLimit() bool {
 	return o.Price.IsPositive()
 }
 
+// IsMarket returns true when the order is market order.
 func (o *Order) IsMarket() bool {
 	return o.Price.IsZero()
 }
 
+// Match matches maker with a taker and returns trade if there is a match.
 func (maker *Order) Match(taker *Order) *Trade {
 	if maker.Side == taker.Side {
 		log.Fatalf("[oceanbook.orderbook] match order with same side %d, %d", maker.ID, taker.ID)
+		return nil
 	}
 
 	var bidOrder *Order
@@ -113,6 +127,7 @@ func (maker *Order) Match(taker *Order) *Trade {
 	return nil
 }
 
+// OrderComparator is used for comparing OrderKey.
 func OrderComparator(a, b interface{}) (result int) {
 	this := a.(*OrderKey)
 	that := b.(*OrderKey)
@@ -122,7 +137,6 @@ func OrderComparator(a, b interface{}) (result int) {
 	}
 
 	if this.ID == that.ID {
-		result = 0
 		return
 	}
 

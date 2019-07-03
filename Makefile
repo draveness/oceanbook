@@ -17,3 +17,6 @@ start: build
 
 test:
 	go test ./...
+
+cover:
+	go test -coverprofile=cover.out -gcflags=-l ./pkg/... && go tool cover -html=cover.out && rm cover.out

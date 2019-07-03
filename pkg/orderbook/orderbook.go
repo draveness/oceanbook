@@ -26,9 +26,6 @@ func NewOrderBook(market string) *OrderBook {
 
 // InsertOrder inserts new order into orderbook.
 func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
-	od.Lock()
-	defer od.Unlock()
-
 	log.Debugf("[oceanbook.orderbook] insert order with id %od %s * %s, side %s", newOrder.ID, newOrder.Price, newOrder.Quantity, newOrder.Side)
 
 	// TODO: deal with order with same id but different properties
@@ -49,6 +46,9 @@ func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
 
 	trades := []*Trade{}
 
+	od.Lock()
+	defer od.Unlock()
+
 	_, found := takerBooks.Get(newOrder.Key())
 	if found {
 		return trades
@@ -68,7 +68,6 @@ func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
 		}
 
 		trades = append(trades, newTrade)
-		log.Infof("[oceanbook.orderbook] new trade with id %d (%s, %s)", newTrade.ID, newTrade.Price, newTrade.Quantity)
 
 		if bestOrder.Filled() {
 			makerBooks.Remove(bestOrder.Key())
