@@ -22,6 +22,8 @@ message Order {
     Side side = 4;
     string pair = 5;
     State state = 6;
+    string stop_price = 7;
+    bool immediate_or_cancel = 8;
 }
 
 message Trade {
@@ -40,6 +42,8 @@ message InsertOrderRequest {
     string quantity = 3;
     Order.Side side = 4;
     string pair = 5;
+    string stop_price = 6;
+    bool immediate_or_cancel = 7;
 }
 
 message CancelOrderRequest {
