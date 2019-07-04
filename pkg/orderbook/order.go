@@ -75,7 +75,8 @@ func (o *Order) IsMarket() bool {
 }
 
 // Match matches maker with a taker and returns trade if there is a match.
-func (maker *Order) Match(taker *Order) *Trade {
+func (o *Order) Match(taker *Order) *Trade {
+	maker := o
 	if maker.Side == taker.Side {
 		log.Fatalf("[oceanbook.orderbook] match order with same side %d, %d", maker.ID, taker.ID)
 		return nil
