@@ -38,11 +38,13 @@ func NewService(stopCh <-chan struct{}) *Service {
 	}
 }
 
-func (s *service) getOrderBook(pair string) (*Orderbook, bool) {
+func (s *Service) getOrderBook(pair string) (*orderbook.OrderBook, bool) {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.orderbooks[request.Pair]
+	orderbook, ok := s.orderbooks[pair]
+
+	return orderbook, ok
 }
 
 // GetDepth .

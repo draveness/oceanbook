@@ -99,6 +99,37 @@ func (s *suiteOrderBookTester) TestInsertOrder() {
 	}
 }
 
+func (s *suiteOrderBookTester) TestInsertLimitOrder() {
+	orderBook := NewOrderBook("market")
+
+	limitOrder := &Order{
+		ID:       2,
+		Side:     OrderSideBid,
+		Price:    decimal.NewFromFloat(10.0),
+		Quantity: decimal.NewFromFloat(30.0),
+	}
+
+	s.EqualValues([]*Trade{}, orderBook.InsertOrder(limitOrder))
+	s.EqualValues(limitOrder, orderBook.Bids.Right().Value.(*Order))
+	s.EqualValues(1, orderBook.Bids.Size())
+}
+
+func (s *suiteOrderBookTester) TestInsertImmediateOrCancelOrder() {
+	orderBook := NewOrderBook("market")
+
+	iocOrder := &Order{
+		ID:                2,
+		Side:              OrderSideBid,
+		Price:             decimal.NewFromFloat(10.0),
+		Quantity:          decimal.NewFromFloat(30.0),
+		ImmediateOrCancel: true,
+	}
+
+	s.EqualValues([]*Trade{}, orderBook.InsertOrder(iocOrder))
+	s.True(orderBook.Bids.Empty())
+	s.True(orderBook.Asks.Empty())
+}
+
 func TestOrderBook(t *testing.T) {
 	tester := new(suiteOrderBookTester)
 	suite.Run(t, tester)

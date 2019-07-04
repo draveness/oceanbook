@@ -22,13 +22,14 @@ const (
 
 // Order .
 type Order struct {
-	ID             uint64          `json:"id"`
-	Side           OrderSide       `json:"side"`
-	Price          decimal.Decimal `json:"price"`
-	Quantity       decimal.Decimal `json:"quantity"`
-	FilledQuantity decimal.Decimal `json:"filled_quantity"`
-	StopPrice      decimal.Decimal `json:"stop_price"`
-	CreatedAt      time.Time       `json:"created_at"`
+	ID                uint64          `json:"id"`
+	Side              OrderSide       `json:"side"`
+	Price             decimal.Decimal `json:"price"`
+	Quantity          decimal.Decimal `json:"quantity"`
+	FilledQuantity    decimal.Decimal `json:"filled_quantity"`
+	StopPrice         decimal.Decimal `json:"stop_price"`
+	CreatedAt         time.Time       `json:"created_at"`
+	ImmediateOrCancel bool            `json:"immediate_or_cancel"`
 }
 
 // OrderKey is used to sort orders in red black tree.

@@ -82,6 +82,12 @@ func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
 		log.Fatalf("[oceanbook.orderbook] unexpected filled order %od", newOrder.ID)
 	}
 
+	// if the order is immediate or cancel order, it is not supposed to insert
+	// into the orderbooks.
+	if newOrder.ImmediateOrCancel {
+		return trades
+	}
+
 	takerBooks.Put(newOrder.Key(), newOrder)
 
 	return trades
