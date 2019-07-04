@@ -1,4 +1,4 @@
-package orderbook
+package trade
 
 import (
 	"github.com/draveness/oceanbook/api/protobuf-spec/oceanbookpb"

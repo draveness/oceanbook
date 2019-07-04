@@ -1,9 +1,10 @@
-package orderbook
+package order
 
 import (
 	"testing"
 	"time"
 
+	"github.com/draveness/oceanbook/pkg/trade"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/suite"
@@ -16,7 +17,7 @@ type suiteMatchOrderTester struct {
 func (s *suiteMatchOrderTester) TestMatchOrderNormalCase() {
 	askOrder := &Order{
 		ID:        1,
-		Side:      OrderSideAsk,
+		Side:      SideAsk,
 		Price:     decimal.NewFromFloat(2.0),
 		Quantity:  decimal.NewFromFloat(3.0),
 		CreatedAt: time.Now(),
@@ -24,15 +25,15 @@ func (s *suiteMatchOrderTester) TestMatchOrderNormalCase() {
 
 	bidOrder := &Order{
 		ID:        2,
-		Side:      OrderSideBid,
+		Side:      SideBid,
 		Price:     decimal.NewFromFloat(2.1),
 		Quantity:  decimal.NewFromFloat(3.0),
 		CreatedAt: time.Now(),
 	}
 
-	trade := askOrder.Match(bidOrder)
+	t := askOrder.Match(bidOrder)
 
-	s.Equal(trade, &Trade{
+	s.Equal(t, &trade.Trade{
 		Price:    askOrder.Price,
 		Quantity: decimal.NewFromFloat(3.0),
 		TakerID:  2,
@@ -43,7 +44,7 @@ func (s *suiteMatchOrderTester) TestMatchOrderNormalCase() {
 func (s *suiteMatchOrderTester) TestMatchOrderNoMatch() {
 	askOrder := &Order{
 		ID:        1,
-		Side:      OrderSideAsk,
+		Side:      SideAsk,
 		Price:     decimal.NewFromFloat(3.0),
 		Quantity:  decimal.NewFromFloat(3.0),
 		CreatedAt: time.Now(),
@@ -51,7 +52,7 @@ func (s *suiteMatchOrderTester) TestMatchOrderNoMatch() {
 
 	bidOrder := &Order{
 		ID:        2,
-		Side:      OrderSideBid,
+		Side:      SideBid,
 		Price:     decimal.NewFromFloat(2.1),
 		Quantity:  decimal.NewFromFloat(3.0),
 		CreatedAt: time.Now(),
@@ -67,38 +68,38 @@ func TestMatchOrder(t *testing.T) {
 	suite.Run(t, tester)
 }
 
-type suiteOrderComparatorTester struct{ suite.Suite }
+type suiteComparatorTester struct{ suite.Suite }
 
-func (s *suiteOrderComparatorTester) TestBidOrderComparator() {
+func (s *suiteComparatorTester) TestBidOrderComparator() {
 	b1 := Order{
 		ID:        1,
-		Side:      OrderSideBid,
+		Side:      SideBid,
 		Price:     decimal.NewFromFloat(1.0),
 		CreatedAt: time.Now(),
 	}
 
 	b2 := Order{
 		ID:        2,
-		Side:      OrderSideBid,
+		Side:      SideBid,
 		Price:     decimal.NewFromFloat(1.0),
 		CreatedAt: time.Now().Add(200 * time.Second),
 	}
 
 	b3 := Order{
 		ID:        3,
-		Side:      OrderSideBid,
+		Side:      SideBid,
 		Price:     decimal.NewFromFloat(2.0),
 		CreatedAt: time.Now().Add(300 * time.Second),
 	}
 
 	b4 := Order{
 		ID:        4,
-		Side:      OrderSideBid,
+		Side:      SideBid,
 		Price:     decimal.NewFromFloat(0.5),
 		CreatedAt: time.Now().Add(400 * time.Second),
 	}
 
-	tree := rbt.NewWith(OrderComparator)
+	tree := rbt.NewWith(Comparator)
 	tree.Put(b1.Key(), b1)
 	tree.Put(b2.Key(), b2)
 	tree.Put(b3.Key(), b3)
@@ -112,7 +113,7 @@ func (s *suiteOrderComparatorTester) TestBidOrderComparator() {
 	s.Equal([]Order{b4, b2, b1, b3}, orderValues)
 }
 
-func TestOrderComparator(t *testing.T) {
-	tester := new(suiteOrderComparatorTester)
+func TestComparator(t *testing.T) {
+	tester := new(suiteComparatorTester)
 	suite.Run(t, tester)
 }

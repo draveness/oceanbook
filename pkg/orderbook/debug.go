@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/draveness/oceanbook/pkg/order"
 	"github.com/logrusorgru/aurora"
 )
 
@@ -13,7 +14,7 @@ func (od *OrderBook) String() string {
 
 	maxLength := 0
 	for _, ask := range od.Asks.Values() {
-		askOrder := ask.(*Order)
+		askOrder := ask.(*order.Order)
 		askStr := fmt.Sprintf("%s %10s * %-10s %10s %s\n",
 			aurora.Red("|"),
 			askOrder.Price.StringFixed(6),
@@ -27,7 +28,7 @@ func (od *OrderBook) String() string {
 	}
 
 	for _, bid := range od.Bids.Values() {
-		bidOrder := bid.(*Order)
+		bidOrder := bid.(*order.Order)
 		bidStr := fmt.Sprintf("%s %10s * %-10s %10s %s\n",
 			aurora.Green("|"),
 			bidOrder.Price.StringFixed(6),

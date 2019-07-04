@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/draveness/oceanbook/pkg/order"
+	"github.com/draveness/oceanbook/pkg/trade"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/suite"
 )
@@ -28,7 +30,7 @@ func (ode *OrderBookEntry) Test(s *suiteOrderBookTester) {
 	s.T().Run(ode.Name, func(t *testing.T) {
 		orderBook := NewOrderBook("market")
 
-		var trades []*Trade
+		var trades []*trade.Trade
 		for _, o := range ode.Orders {
 			rawResult := strings.Split(o, ",")
 			var result []string
@@ -36,21 +38,28 @@ func (ode *OrderBookEntry) Test(s *suiteOrderBookTester) {
 				result = append(result, strings.TrimSpace(r))
 			}
 
-			var side OrderSide
+			var side order.Side
 			switch result[1] {
 			case "ASK":
-				side = OrderSideAsk
+				side = order.SideAsk
 			case "BID":
-				side = OrderSideBid
+				side = order.SideBid
 			}
 			id, _ := strconv.Atoi(result[0])
 			price, _ := decimal.NewFromString(result[2])
 			quantity, _ := decimal.NewFromString(result[3])
-			newOrder := &Order{
-				ID:       uint64(id),
-				Side:     side,
-				Price:    price,
-				Quantity: quantity,
+			stopPrice := decimal.Zero
+
+			if len(result) >= 5 {
+				stopPrice, _ = decimal.NewFromString(result[4])
+			}
+
+			newOrder := &order.Order{
+				ID:        uint64(id),
+				Side:      side,
+				Price:     price,
+				Quantity:  quantity,
+				StopPrice: stopPrice,
 			}
 
 			newTrades := orderBook.InsertOrder(newOrder)
@@ -59,7 +68,7 @@ func (ode *OrderBookEntry) Test(s *suiteOrderBookTester) {
 			}
 		}
 
-		var expectedTrades []*Trade
+		var expectedTrades []*trade.Trade
 		for _, t := range ode.Trades {
 			rawResult := strings.Split(t, ",")
 			var result []string
@@ -71,7 +80,7 @@ func (ode *OrderBookEntry) Test(s *suiteOrderBookTester) {
 			quantity, _ := decimal.NewFromString(result[1])
 			makeID, _ := strconv.Atoi(result[2])
 			takerID, _ := strconv.Atoi(result[3])
-			expectedTrades = append(expectedTrades, &Trade{
+			expectedTrades = append(expectedTrades, &trade.Trade{
 				Price:    price,
 				Quantity: quantity,
 				MakerID:  uint64(makeID),
@@ -102,30 +111,30 @@ func (s *suiteOrderBookTester) TestInsertOrder() {
 func (s *suiteOrderBookTester) TestInsertLimitOrder() {
 	orderBook := NewOrderBook("market")
 
-	limitOrder := &Order{
+	limitOrder := &order.Order{
 		ID:       2,
-		Side:     OrderSideBid,
+		Side:     order.SideBid,
 		Price:    decimal.NewFromFloat(10.0),
 		Quantity: decimal.NewFromFloat(30.0),
 	}
 
-	s.EqualValues([]*Trade{}, orderBook.InsertOrder(limitOrder))
-	s.EqualValues(limitOrder, orderBook.Bids.Right().Value.(*Order))
+	s.EqualValues([]*trade.Trade{}, orderBook.InsertOrder(limitOrder))
+	s.EqualValues(limitOrder, orderBook.Bids.Right().Value.(*order.Order))
 	s.EqualValues(1, orderBook.Bids.Size())
 }
 
 func (s *suiteOrderBookTester) TestInsertImmediateOrCancelOrder() {
 	orderBook := NewOrderBook("market")
 
-	iocOrder := &Order{
+	iocOrder := &order.Order{
 		ID:                2,
-		Side:              OrderSideBid,
+		Side:              order.SideBid,
 		Price:             decimal.NewFromFloat(10.0),
 		Quantity:          decimal.NewFromFloat(30.0),
 		ImmediateOrCancel: true,
 	}
 
-	s.EqualValues([]*Trade{}, orderBook.InsertOrder(iocOrder))
+	s.EqualValues([]*trade.Trade{}, orderBook.InsertOrder(iocOrder))
 	s.True(orderBook.Bids.Empty())
 	s.True(orderBook.Asks.Empty())
 }
@@ -138,20 +147,20 @@ func TestOrderBook(t *testing.T) {
 func BenchmarkInsertOrder(b *testing.B) {
 	orderBook := NewOrderBook("market")
 
-	orders := make([]*Order, b.N)
+	orders := make([]*order.Order, b.N)
 	for n := 0; n < b.N; n++ {
-		var side OrderSide
+		var side order.Side
 		switch rand.Intn(2) {
 		case 0:
-			side = OrderSideAsk
+			side = order.SideAsk
 		case 1:
-			side = OrderSideBid
+			side = order.SideBid
 		}
 
 		price := rand.Intn(10)
 		quantity := rand.Intn(10) + 1
 
-		orders[n] = &Order{
+		orders[n] = &order.Order{
 			ID:       uint64(n),
 			Side:     side,
 			Price:    decimal.NewFromFloat(float64(price)),
