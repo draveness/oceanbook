@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/draveness/oceanbook/api/protobuf-spec/oceanbookpb"
+	"github.com/draveness/oceanbook/pkg/order"
 	"github.com/draveness/oceanbook/pkg/orderbook"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
@@ -86,19 +87,19 @@ func (s *Service) InsertOrder(request *oceanbookpb.InsertOrderRequest, stream oc
 		return ErrInvalidOrderQuantity
 	}
 
-	var side orderbook.OrderSide
+	var side order.Side
 	switch request.Side {
 	case oceanbookpb.Order_ASK:
-		side = orderbook.OrderSideAsk
+		side = order.SideAsk
 
 	case oceanbookpb.Order_BID:
-		side = orderbook.OrderSideBid
+		side = order.SideBid
 
 	default:
 		return ErrInvalidOrderSide
 	}
 
-	trades := od.InsertOrder(&orderbook.Order{
+	trades := od.InsertOrder(&order.Order{
 		ID:       request.Id,
 		Side:     side,
 		Price:    price,
@@ -120,7 +121,7 @@ func (s *Service) CancelOrder(ctx context.Context, request *oceanbookpb.CancelOr
 		return nil, ErrOrderBookNotFound
 	}
 
-	od.CancelOrder(&orderbook.Order{
+	od.CancelOrder(&order.Order{
 		ID: request.OrderId,
 	})
 

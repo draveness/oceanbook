@@ -1,48 +1,49 @@
-package orderbook
+package order
 
 import (
 	"time"
 
-	"github.com/shopspring/decimal"
-
+	"github.com/draveness/oceanbook/pkg/trade"
 	"github.com/emirpasic/gods/utils"
+	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 )
 
-// OrderSide is the orders' side.
-type OrderSide string
+// Side is the orders' side.
+type Side string
 
 const (
-	// OrderSideAsk represents the ask order side.
-	OrderSideAsk OrderSide = "ask"
+	// SideAsk represents the ask order side.
+	SideAsk Side = "ask"
 
-	// OrderSideBid represents the bid order side.
-	OrderSideBid OrderSide = "bid"
+	// SideBid represents the bid order side.
+	SideBid Side = "bid"
 )
 
 // Order .
 type Order struct {
 	ID                uint64          `json:"id"`
-	Side              OrderSide       `json:"side"`
+	Side              Side            `json:"side"`
 	Price             decimal.Decimal `json:"price"`
+	StopPrice         decimal.Decimal `json:"stop_price"`
 	Quantity          decimal.Decimal `json:"quantity"`
 	FilledQuantity    decimal.Decimal `json:"filled_quantity"`
-	StopPrice         decimal.Decimal `json:"stop_price"`
 	CreatedAt         time.Time       `json:"created_at"`
 	ImmediateOrCancel bool            `json:"immediate_or_cancel"`
 }
 
-// OrderKey is used to sort orders in red black tree.
-type OrderKey struct {
+// Key is used to sort orders in red black tree.
+type Key struct {
 	ID        uint64          `json:"id"`
-	Side      OrderSide       `json:"side"`
+	Side      Side            `json:"side"`
 	Price     decimal.Decimal `json:"price"`
+	StopPrice decimal.Decimal `json:"stop_price"`
 	CreatedAt time.Time       `json:"created_at"`
 }
 
-// Key returns a OrderKey.
-func (o *Order) Key() *OrderKey {
-	return &OrderKey{
+// Key returns a Key.
+func (o *Order) Key() *Key {
+	return &Key{
 		ID:        o.ID,
 		Side:      o.Side,
 		Price:     o.Price,
@@ -76,10 +77,10 @@ func (o *Order) IsMarket() bool {
 }
 
 // Match matches maker with a taker and returns trade if there is a match.
-func (o *Order) Match(taker *Order) *Trade {
+func (o *Order) Match(taker *Order) *trade.Trade {
 	maker := o
 	if maker.Side == taker.Side {
-		log.Fatalf("[oceanbook.orderbook] match order with same side %d, %d", maker.ID, taker.ID)
+		log.Fatalf("[oceanbook.orderbook] match order with same side %s, %d, %d", maker.Side, maker.ID, taker.ID)
 		return nil
 	}
 
@@ -87,11 +88,11 @@ func (o *Order) Match(taker *Order) *Trade {
 	var askOrder *Order
 
 	switch maker.Side {
-	case OrderSideBid:
+	case SideBid:
 		bidOrder = maker
 		askOrder = taker
 
-	case OrderSideAsk:
+	case SideAsk:
 		bidOrder = taker
 		askOrder = maker
 	}
@@ -103,7 +104,7 @@ func (o *Order) Match(taker *Order) *Trade {
 			bidOrder.Fill(filledQuantity)
 			askOrder.Fill(filledQuantity)
 
-			return &Trade{
+			return &trade.Trade{
 				Price:    maker.Price,
 				Quantity: filledQuantity,
 				TakerID:  taker.ID,
@@ -118,7 +119,7 @@ func (o *Order) Match(taker *Order) *Trade {
 		bidOrder.Fill(filledQuantity)
 		askOrder.Fill(filledQuantity)
 
-		return &Trade{
+		return &trade.Trade{
 			Price:    maker.Price,
 			Quantity: filledQuantity,
 			TakerID:  taker.ID,
@@ -129,10 +130,10 @@ func (o *Order) Match(taker *Order) *Trade {
 	return nil
 }
 
-// OrderComparator is used for comparing OrderKey.
-func OrderComparator(a, b interface{}) (result int) {
-	this := a.(*OrderKey)
-	that := b.(*OrderKey)
+// Comparator is used for comparing Key.
+func Comparator(a, b interface{}) (result int) {
+	this := a.(*Key)
+	that := b.(*Key)
 
 	if this.Side != that.Side {
 		log.Fatalf("[oceanbook.orderbook] compare order with different sides")
@@ -144,16 +145,59 @@ func OrderComparator(a, b interface{}) (result int) {
 
 	// based on ask
 	switch {
-	case this.Side == OrderSideAsk && this.Price.LessThan(that.Price):
+	case this.Side == SideAsk && this.Price.LessThan(that.Price):
 		result = 1
 
-	case this.Side == OrderSideAsk && this.Price.GreaterThan(that.Price):
+	case this.Side == SideAsk && this.Price.GreaterThan(that.Price):
 		result = -1
 
-	case this.Side == OrderSideBid && this.Price.LessThan(that.Price):
+	case this.Side == SideBid && this.Price.LessThan(that.Price):
 		result = -1
 
-	case this.Side == OrderSideBid && this.Price.GreaterThan(that.Price):
+	case this.Side == SideBid && this.Price.GreaterThan(that.Price):
+		result = 1
+
+	default:
+		switch {
+		case this.CreatedAt.Before(that.CreatedAt):
+			result = 1
+
+		case this.CreatedAt.After(that.CreatedAt):
+			result = -1
+
+		default:
+			result = utils.UInt64Comparator(this.ID, that.ID) * -1
+		}
+	}
+
+	return
+}
+
+// StopComparator is used for comparing Key.
+func StopComparator(a, b interface{}) (result int) {
+	this := a.(*Key)
+	that := b.(*Key)
+
+	if this.Side != that.Side {
+		log.Fatalf("[oceanbook.orderbook] compare order with different sides")
+	}
+
+	if this.ID == that.ID {
+		return
+	}
+
+	// based on ask
+	switch {
+	case this.Side == SideAsk && this.StopPrice.LessThan(that.StopPrice):
+		result = 1
+
+	case this.Side == SideAsk && this.StopPrice.GreaterThan(that.StopPrice):
+		result = -1
+
+	case this.Side == SideBid && this.StopPrice.LessThan(that.StopPrice):
+		result = -1
+
+	case this.Side == SideBid && this.StopPrice.GreaterThan(that.StopPrice):
 		result = 1
 
 	default:

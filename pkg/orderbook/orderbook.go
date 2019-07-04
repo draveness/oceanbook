@@ -3,51 +3,92 @@ package orderbook
 import (
 	"sync"
 
+	"github.com/draveness/oceanbook/pkg/order"
+	"github.com/draveness/oceanbook/pkg/queue"
+	"github.com/draveness/oceanbook/pkg/trade"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
+	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 )
 
 // OrderBook is the order book.
 type OrderBook struct {
 	sync.RWMutex
-	Pair string
-	Bids *rbt.Tree
-	Asks *rbt.Tree
+	Pair  string
+	Price decimal.Decimal
+
+	Bids     *rbt.Tree
+	Asks     *rbt.Tree
+	StopBids *rbt.Tree
+	StopAsks *rbt.Tree
+
+	pendingOrdersQueue *queue.OrderQueue
 }
+
+const (
+	// pendingOrdersCap is the buffer size for pending orders.
+	pendingOrdersCap int64 = 1024
+)
 
 // NewOrderBook returns a pointer to an orderbook.
 func NewOrderBook(pair string) *OrderBook {
+	orderQueue := queue.NewOrderQueue(pendingOrdersCap)
 	return &OrderBook{
-		Pair: pair,
-		Bids: rbt.NewWith(OrderComparator),
-		Asks: rbt.NewWith(OrderComparator),
+		Pair:               pair,
+		Bids:               rbt.NewWith(order.Comparator),
+		Asks:               rbt.NewWith(order.Comparator),
+		StopBids:           rbt.NewWith(order.StopComparator),
+		StopAsks:           rbt.NewWith(order.StopComparator),
+		pendingOrdersQueue: &orderQueue,
 	}
 }
 
 // InsertOrder inserts new order into orderbook.
-func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
-	log.Debugf("[oceanbook.orderbook] insert order with id %od %s * %s, side %s", newOrder.ID, newOrder.Price, newOrder.Quantity, newOrder.Side)
+func (od *OrderBook) InsertOrder(newOrder *order.Order) []*trade.Trade {
+	od.Lock()
+	defer od.Unlock()
 
-	// TODO: deal with order with same id but different properties
-	var takerBooks *rbt.Tree
-	var makerBooks *rbt.Tree
+	log.Infof("[oceanbook.orderbook] insert order with id %d - %s * %s, side %s", newOrder.ID, newOrder.Price, newOrder.Quantity, newOrder.Side)
+
+	if !newOrder.StopPrice.Equal(decimal.Zero) {
+		od.insertStopOrder(newOrder)
+
+		return []*trade.Trade{}
+	}
+
+	trades := od.insertOrder(newOrder)
+
+	pendingOrders := od.pendingOrdersQueue.Values()
+	for i := range pendingOrders {
+		pendingOrder := pendingOrders[i]
+
+		log.Infof("[oceanbook.orderbook] insert stop order with id %d - %s * %s, side %s", pendingOrder.ID, pendingOrder.Price, pendingOrder.Quantity, pendingOrder.Side)
+
+		newTrades := od.insertOrder(pendingOrder)
+		trades = append(trades, newTrades...)
+	}
+	od.pendingOrdersQueue.Clear()
+
+	return trades
+}
+
+func (od *OrderBook) insertOrder(newOrder *order.Order) []*trade.Trade {
+	trades := []*trade.Trade{}
+
+	var takerBooks, makerBooks *rbt.Tree
 	switch newOrder.Side {
-	case OrderSideAsk:
+	case order.SideAsk:
 		takerBooks = od.Asks
 		makerBooks = od.Bids
 
-	case OrderSideBid:
+	case order.SideBid:
 		takerBooks = od.Bids
 		makerBooks = od.Asks
 
 	default:
 		log.Fatalf("[oceanbook.orderbook] invalid order side %s", newOrder.Side)
+		return trades
 	}
-
-	trades := []*Trade{}
-
-	od.Lock()
-	defer od.Unlock()
 
 	_, found := takerBooks.Get(newOrder.Key())
 	if found {
@@ -55,12 +96,16 @@ func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
 	}
 
 	for {
+		if newOrder == nil {
+			break
+		}
+
 		best := makerBooks.Right()
 		if best == nil {
 			break
 		}
 
-		bestOrder := best.Value.(*Order)
+		bestOrder := best.Value.(*order.Order)
 		newTrade := bestOrder.Match(newOrder)
 
 		if newTrade == nil {
@@ -68,18 +113,17 @@ func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
 		}
 
 		trades = append(trades, newTrade)
+		log.Infof("[oceanbook.orderbook] new trade %d with price %s", newTrade.ID, newTrade.Price)
 
 		if bestOrder.Filled() {
 			makerBooks.Remove(bestOrder.Key())
 		}
 
+		od.setMarketPrice(newTrade.Price)
+
 		if newOrder.Filled() {
 			return trades
 		}
-	}
-
-	if newOrder.Filled() {
-		log.Fatalf("[oceanbook.orderbook] unexpected filled order %od", newOrder.ID)
 	}
 
 	// if the order is immediate or cancel order, it is not supposed to insert
@@ -93,8 +137,83 @@ func (od *OrderBook) InsertOrder(newOrder *Order) []*Trade {
 	return trades
 }
 
+func (od *OrderBook) insertStopOrder(newOrder *order.Order) {
+	var takerBooks *rbt.Tree
+	switch newOrder.Side {
+	case order.SideAsk:
+		takerBooks = od.StopAsks
+
+	case order.SideBid:
+		takerBooks = od.StopBids
+
+	default:
+		log.Fatalf("[oceanbook.orderbook] invalid stop order side %s", newOrder.Side)
+		return
+	}
+
+	_, found := takerBooks.Get(newOrder.Key())
+	if found {
+		return
+	}
+
+	takerBooks.Put(newOrder.Key(), newOrder)
+}
+
+func (od *OrderBook) setMarketPrice(newPrice decimal.Decimal) {
+	previousPrice := od.Price
+	od.Price = newPrice
+
+	if previousPrice.Equal(decimal.Zero) {
+		return
+	}
+
+	switch {
+	case newPrice.LessThan(previousPrice):
+		// price gone done, check stop asks
+		for {
+			best := od.StopBids.Right()
+			if best == nil {
+				break
+			}
+
+			bestOrder := best.Value.(*order.Order)
+			if bestOrder.StopPrice.LessThan(newPrice) {
+				break
+			}
+
+			log.Infof("[oceanbook.orderbook] bid order %d with stop price %s enqueued", bestOrder.ID, bestOrder.Price)
+
+			od.StopBids.Remove(best.Key)
+			od.pendingOrdersQueue.Push(bestOrder)
+		}
+
+	case newPrice.GreaterThan(previousPrice):
+		// price gone done, check stop asks
+		for {
+			best := od.StopAsks.Right()
+			if best == nil {
+				break
+			}
+
+			bestOrder := best.Value.(*order.Order)
+			if bestOrder.StopPrice.GreaterThan(newPrice) {
+				break
+			}
+
+			log.Infof("[oceanbook.orderbook] ask order %d with stop price %s enqueued", bestOrder.ID, bestOrder.Price)
+
+			od.StopAsks.Remove(best.Key)
+			od.pendingOrdersQueue.Push(bestOrder)
+		}
+
+	default:
+		// previous price equals to new price
+		return
+	}
+}
+
 // CancelOrder removes order with specified id.
-func (od *OrderBook) CancelOrder(o *Order) {
+func (od *OrderBook) CancelOrder(o *order.Order) {
 	od.Lock()
 	defer od.Unlock()
 
