@@ -10,17 +10,17 @@ import (
 // OrderBook is the order book.
 type OrderBook struct {
 	sync.RWMutex
-	Market string
-	Bids   *rbt.Tree
-	Asks   *rbt.Tree
+	Pair string
+	Bids *rbt.Tree
+	Asks *rbt.Tree
 }
 
 // NewOrderBook returns a pointer to an orderbook.
-func NewOrderBook(market string) *OrderBook {
+func NewOrderBook(pair string) *OrderBook {
 	return &OrderBook{
-		Market: market,
-		Bids:   rbt.NewWith(OrderComparator),
-		Asks:   rbt.NewWith(OrderComparator),
+		Pair: pair,
+		Bids: rbt.NewWith(OrderComparator),
+		Asks: rbt.NewWith(OrderComparator),
 	}
 }
 

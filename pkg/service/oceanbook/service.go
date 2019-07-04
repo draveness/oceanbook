@@ -12,9 +12,17 @@ import (
 )
 
 var (
-	ErrOrderBookNotFound    = errors.New("orderbook not found")
-	ErrInvalidOrderPrice    = errors.New("invalid order price")
+	// ErrOrderBookNotFound returns when orderbook not found.
+	ErrOrderBookNotFound = errors.New("orderbook not found")
+
+	// ErrInvalidOrderPrice returns when order price is invalid.
+	ErrInvalidOrderPrice = errors.New("invalid order price")
+
+	// ErrInvalidOrderQuantity returns when order quantity is invalid.
 	ErrInvalidOrderQuantity = errors.New("invalid order quantity")
+
+	// ErrInvalidOrderSide returns when order side is invalid.
+	ErrInvalidOrderSide = errors.New("invalid order side")
 )
 
 // Service represents oceanbook service.
@@ -30,6 +38,13 @@ func NewService(stopCh <-chan struct{}) *Service {
 	}
 }
 
+func (s *service) getOrderBook(pair string) (*Orderbook, bool) {
+	s.RLock()
+	defer s.RUnlock()
+
+	return s.orderbooks[request.Pair]
+}
+
 // GetDepth .
 func (s *Service) GetDepth(ctx context.Context, request *oceanbookpb.GetDepthRequest) (*oceanbookpb.Depth, error) {
 	return nil, nil
@@ -37,17 +52,16 @@ func (s *Service) GetDepth(ctx context.Context, request *oceanbookpb.GetDepthReq
 
 // NewOrderBook .
 func (s *Service) NewOrderBook(ctx context.Context, request *oceanbookpb.NewOrderBookRequest) (*oceanbookpb.NewOrderBookResponse, error) {
-	s.Lock()
-	defer s.Unlock()
-
-	_, exists := s.orderbooks[request.Pair]
+	_, exists := s.getOrderBook(request.Pair)
 	if exists {
-		log.Infof("[oceanbook.liquidity] order book %s already exists", request.Pair)
 		return &oceanbookpb.NewOrderBookResponse{}, nil
 	}
 
-	od := orderbook.NewOrderBook(request.Pair)
-	s.orderbooks[request.Pair] = od
+	s.Lock()
+	defer s.Unlock()
+
+	s.orderbooks[request.Pair] = orderbook.NewOrderBook(request.Pair)
+
 	log.Infof("[oceanbook.liquidity] new order book with pair %s", request.Pair)
 
 	return &oceanbookpb.NewOrderBookResponse{}, nil
@@ -55,22 +69,19 @@ func (s *Service) NewOrderBook(ctx context.Context, request *oceanbookpb.NewOrde
 
 // InsertOrder .
 func (s *Service) InsertOrder(request *oceanbookpb.InsertOrderRequest, stream oceanbookpb.Oceanbook_InsertOrderServer) error {
-	od, exists := s.orderbooks[request.Pair]
+	od, exists := s.getOrderBook(request.Pair)
 	if !exists {
-		log.Infof("[oceanbook.liquidity/runInsertOrder] orderbook with pair %s not found", request.Pair)
 		return ErrOrderBookNotFound
 	}
 
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {
-		log.Fatalf("[oceanbook.liquidity/runInsertOrder] order with invalid price %s", request.Price)
-		return nil
+		return ErrInvalidOrderPrice
 	}
 
 	quantity, err := decimal.NewFromString(request.Quantity)
 	if err != nil {
-		log.Fatalf("[oceanbook.liquidity] order with invalid quantity %s", request.Quantity)
-		return nil
+		return ErrInvalidOrderQuantity
 	}
 
 	var side orderbook.OrderSide
@@ -82,11 +93,9 @@ func (s *Service) InsertOrder(request *oceanbookpb.InsertOrderRequest, stream oc
 		side = orderbook.OrderSideBid
 
 	default:
-		log.Fatalf("[oceanbook.liquidity] order with invalid side %s", request.Side)
-
+		return ErrInvalidOrderSide
 	}
 
-	// FIXME: return trades
 	trades := od.InsertOrder(&orderbook.Order{
 		ID:       request.Id,
 		Side:     side,
@@ -103,7 +112,7 @@ func (s *Service) InsertOrder(request *oceanbookpb.InsertOrderRequest, stream oc
 
 // CancelOrder .
 func (s *Service) CancelOrder(ctx context.Context, request *oceanbookpb.CancelOrderRequest) (*oceanbookpb.CancelOrderResponse, error) {
-	od, exists := s.orderbooks[request.Pair]
+	od, exists := s.getOrderBook(request.Pair)
 	if !exists {
 		log.Infof("[oceanbook.liquidity/runCancelOrder] orderbook with pair %s not found", request.Pair)
 		return nil, ErrOrderBookNotFound
