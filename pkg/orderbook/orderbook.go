@@ -3,6 +3,8 @@ package orderbook
 import (
 	"sync"
 
+	// log level and settings
+	_ "github.com/draveness/oceanbook/pkg/log"
 	"github.com/draveness/oceanbook/pkg/order"
 	"github.com/draveness/oceanbook/pkg/queue"
 	"github.com/draveness/oceanbook/pkg/trade"
