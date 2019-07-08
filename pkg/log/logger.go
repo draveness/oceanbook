@@ -11,5 +11,5 @@ func init() {
 	formatter.FullTimestamp = true
 	logrus.SetFormatter(formatter)
 	logrus.AddHook(filename.NewHook())
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.WarnLevel)
 }
