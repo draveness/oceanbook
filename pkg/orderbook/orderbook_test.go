@@ -139,6 +139,42 @@ func (s *suiteOrderBookTester) TestInsertImmediateOrCancelOrder() {
 	s.True(orderBook.Asks.Empty())
 }
 
+func (s *suiteOrderBookTester) TestCancelOrder() {
+	orderBook := NewOrderBook("market")
+
+	bidOrder := &order.Order{
+		ID:       1,
+		Side:     order.SideBid,
+		Price:    decimal.NewFromFloat(10.0),
+		Quantity: decimal.NewFromFloat(30.0),
+	}
+
+	askOrder := &order.Order{
+		ID:       2,
+		Side:     order.SideAsk,
+		Price:    decimal.NewFromFloat(10.0),
+		Quantity: decimal.NewFromFloat(30.0),
+	}
+
+	orderBook.InsertOrder(bidOrder)
+	orderBook.InsertOrder(askOrder)
+
+	orderBook.CancelOrder(bidOrder)
+	s.Nil(orderBook.Bids.Right())
+	s.EqualValues(0, orderBook.Bids.Size())
+
+	orderBook.CancelOrder(askOrder)
+	s.Nil(orderBook.Asks.Right())
+	s.EqualValues(0, orderBook.Asks.Size())
+
+	orderBook.InsertOrder(bidOrder)
+	orderBook.CancelOrder(&order.Order{
+		ID: 1,
+	})
+	s.Nil(orderBook.Bids.Right())
+	s.EqualValues(0, orderBook.Bids.Size())
+}
+
 func TestOrderBook(t *testing.T) {
 	tester := new(suiteOrderBookTester)
 	suite.Run(t, tester)

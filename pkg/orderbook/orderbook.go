@@ -25,6 +25,7 @@ type OrderBook struct {
 	StopAsks *rbt.Tree
 
 	pendingOrdersQueue *queue.OrderQueue
+	cancelOrdersQueue  map[uint64]*order.Order
 }
 
 const (
@@ -42,6 +43,7 @@ func NewOrderBook(pair string) *OrderBook {
 		StopBids:           rbt.NewWith(order.StopComparator),
 		StopAsks:           rbt.NewWith(order.StopComparator),
 		pendingOrdersQueue: &orderQueue,
+		cancelOrdersQueue:  make(map[uint64]*order.Order, 1024),
 	}
 }
 
@@ -119,6 +121,7 @@ func (od *OrderBook) insertOrder(newOrder *order.Order) []*trade.Trade {
 
 		if bestOrder.Filled() {
 			makerBooks.Remove(bestOrder.Key())
+			delete(od.cancelOrdersQueue, bestOrder.ID)
 		}
 
 		od.setMarketPrice(newTrade.Price)
@@ -135,6 +138,7 @@ func (od *OrderBook) insertOrder(newOrder *order.Order) []*trade.Trade {
 	}
 
 	takerBooks.Put(newOrder.Key(), newOrder)
+	od.cancelOrdersQueue[newOrder.ID] = newOrder
 
 	return trades
 }
@@ -219,6 +223,20 @@ func (od *OrderBook) CancelOrder(o *order.Order) {
 	od.Lock()
 	defer od.Unlock()
 
-	od.Bids.Remove(o.Key())
-	od.Asks.Remove(o.Key())
+	targetOrder, ok := od.cancelOrdersQueue[o.ID]
+	if !ok {
+		return
+	}
+
+	switch targetOrder.Side {
+	case order.SideAsk:
+		od.Asks.Remove(targetOrder.Key())
+
+	case order.SideBid:
+		od.Bids.Remove(targetOrder.Key())
+
+	default:
+		od.Asks.Remove(targetOrder.Key())
+		od.Bids.Remove(targetOrder.Key())
+	}
 }
