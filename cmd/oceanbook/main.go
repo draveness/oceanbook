@@ -25,6 +25,7 @@ func main() {
 
 	grpcprometheus.Register(grpcServer)
 
+	log.Infof("[oceanbook] start oceanbook at port 9121...")
 	listen, err := net.Listen("tcp", ":9121")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

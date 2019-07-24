@@ -52,7 +52,7 @@ func (od *OrderBook) InsertOrder(newOrder *order.Order) []*trade.Trade {
 	od.Lock()
 	defer od.Unlock()
 
-	log.Infof("[oceanbook.orderbook] insert order with id %d - %s * %s, side %s", newOrder.ID, newOrder.Price, newOrder.Quantity, newOrder.Side)
+	log.Debugf("[oceanbook.orderbook] insert order with id %d - %s * %s, side %s", newOrder.ID, newOrder.Price, newOrder.Quantity, newOrder.Side)
 
 	if !newOrder.StopPrice.Equal(decimal.Zero) {
 		od.insertStopOrder(newOrder)
@@ -66,7 +66,7 @@ func (od *OrderBook) InsertOrder(newOrder *order.Order) []*trade.Trade {
 	for i := range pendingOrders {
 		pendingOrder := pendingOrders[i]
 
-		log.Infof("[oceanbook.orderbook] insert stop order with id %d - %s * %s, side %s", pendingOrder.ID, pendingOrder.Price, pendingOrder.Quantity, pendingOrder.Side)
+		log.Debugf("[oceanbook.orderbook] insert stop order with id %d - %s * %s, side %s", pendingOrder.ID, pendingOrder.Price, pendingOrder.Quantity, pendingOrder.Side)
 
 		newTrades := od.insertOrder(pendingOrder)
 		trades = append(trades, newTrades...)
@@ -117,7 +117,7 @@ func (od *OrderBook) insertOrder(newOrder *order.Order) []*trade.Trade {
 		}
 
 		trades = append(trades, newTrade)
-		log.Infof("[oceanbook.orderbook] new trade %d with price %s", newTrade.ID, newTrade.Price)
+		log.Debugf("[oceanbook.orderbook] new trade %d with price %s", newTrade.ID, newTrade.Price)
 
 		if bestOrder.Filled() {
 			makerBooks.Remove(bestOrder.Key())
@@ -187,7 +187,7 @@ func (od *OrderBook) setMarketPrice(newPrice decimal.Decimal) {
 				break
 			}
 
-			log.Infof("[oceanbook.orderbook] bid order %d with stop price %s enqueued", bestOrder.ID, bestOrder.Price)
+			log.Debugf("[oceanbook.orderbook] bid order %d with stop price %s enqueued", bestOrder.ID, bestOrder.Price)
 
 			od.StopBids.Remove(best.Key)
 			od.pendingOrdersQueue.Push(bestOrder)
@@ -206,7 +206,7 @@ func (od *OrderBook) setMarketPrice(newPrice decimal.Decimal) {
 				break
 			}
 
-			log.Infof("[oceanbook.orderbook] ask order %d with stop price %s enqueued", bestOrder.ID, bestOrder.Price)
+			log.Debugf("[oceanbook.orderbook] ask order %d with stop price %s enqueued", bestOrder.ID, bestOrder.Price)
 
 			od.StopAsks.Remove(best.Key)
 			od.pendingOrdersQueue.Push(bestOrder)

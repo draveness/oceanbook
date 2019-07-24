@@ -117,7 +117,6 @@ func (s *Service) InsertOrder(request *oceanbookpb.InsertOrderRequest, stream oc
 func (s *Service) CancelOrder(ctx context.Context, request *oceanbookpb.CancelOrderRequest) (*oceanbookpb.CancelOrderResponse, error) {
 	od, exists := s.getOrderBook(request.Pair)
 	if !exists {
-		log.Infof("[oceanbook.liquidity/runCancelOrder] orderbook with pair %s not found", request.Pair)
 		return nil, ErrOrderBookNotFound
 	}
 
