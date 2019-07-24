@@ -12,8 +12,8 @@ bin/oceanbook: build
 build:
 	go build -o bin/oceanbook cmd/oceanbook/*.go
 
-start: build
-	goreman start
+run: build
+	./bin/oceanbook
 
 test:
 	go test ./...
