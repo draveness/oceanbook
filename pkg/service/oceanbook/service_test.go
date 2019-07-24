@@ -87,3 +87,45 @@ func TestInsertOrder(t *testing.T) {
 		},
 	}, stream.trades)
 }
+
+func TestCancelOrder(t *testing.T) {
+	stopCh := make(chan struct{})
+	svc := NewService(stopCh)
+
+	cancelOrderResponse, err := svc.CancelOrder(context.Background(), &oceanbookpb.CancelOrderRequest{
+		OrderId: 1,
+		Pair:    "BTC/CNY",
+	})
+	assert.Equal(t, ErrOrderBookNotFound, err)
+	assert.Nil(t, cancelOrderResponse)
+
+	request := &oceanbookpb.NewOrderBookRequest{
+		Pair: "BTC/CNY",
+	}
+
+	newOrderBookResponse, err := svc.NewOrderBook(context.Background(), request)
+	assert.Nil(t, err)
+	assert.Equal(t, &oceanbookpb.NewOrderBookResponse{}, newOrderBookResponse)
+
+	stream := NewTestInsertOrderServer()
+	err = svc.InsertOrder(&oceanbookpb.InsertOrderRequest{
+		Id:       1,
+		Price:    "1.0",
+		Quantity: "2.0",
+		Pair:     "BTC/CNY",
+		Side:     oceanbookpb.Order_ASK,
+	}, stream)
+	assert.Nil(t, err)
+	assert.Equal(t, []*oceanbookpb.Trade{}, stream.trades)
+
+	cancelOrderResponse, err = svc.CancelOrder(context.Background(), &oceanbookpb.CancelOrderRequest{
+		OrderId: 1,
+		Pair:    "BTC/CNY",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, &oceanbookpb.CancelOrderResponse{}, cancelOrderResponse)
+
+	orderbook, _ := svc.orderbooks[request.Pair]
+	assert.Equal(t, 0, orderbook.Bids.Size())
+	assert.Equal(t, 0, orderbook.Asks.Size())
+}
