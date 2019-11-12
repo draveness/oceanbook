@@ -15,8 +15,7 @@ import (
 )
 
 func main() {
-	stopCh := make(chan struct{}, 1)
-	svc := oceanbook.NewService(stopCh)
+	svc := oceanbook.NewService()
 
 	grpcServer := grpc.NewServer(
 		grpc.StreamInterceptor(grpcprometheus.StreamServerInterceptor),

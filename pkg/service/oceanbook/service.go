@@ -33,7 +33,7 @@ type Service struct {
 }
 
 // NewService returns an oceanbook service.
-func NewService(stopCh <-chan struct{}) *Service {
+func NewService() *Service {
 	return &Service{
 		orderbooks: map[string]*orderbook.OrderBook{},
 	}

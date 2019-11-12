@@ -10,8 +10,7 @@ import (
 )
 
 func TestNewOrderBook(t *testing.T) {
-	stopCh := make(chan struct{})
-	svc := NewService(stopCh)
+	svc := NewService()
 
 	request := &oceanbookpb.NewOrderBookRequest{
 		Pair: "BTC/CNY",
@@ -48,8 +47,7 @@ func (x *InsertOrderServer) Send(t *oceanbookpb.Trade) error {
 }
 
 func TestInsertOrder(t *testing.T) {
-	stopCh := make(chan struct{})
-	svc := NewService(stopCh)
+	svc := NewService()
 
 	request := &oceanbookpb.NewOrderBookRequest{
 		Pair: "BTC/CNY",
@@ -89,8 +87,7 @@ func TestInsertOrder(t *testing.T) {
 }
 
 func TestCancelOrder(t *testing.T) {
-	stopCh := make(chan struct{})
-	svc := NewService(stopCh)
+	svc := NewService()
 
 	cancelOrderResponse, err := svc.CancelOrder(context.Background(), &oceanbookpb.CancelOrderRequest{
 		OrderId: 1,
