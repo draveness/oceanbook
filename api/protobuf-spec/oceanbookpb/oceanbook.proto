@@ -68,7 +68,7 @@ message GetDepthRequest {
 message PriceLevel {
     string price = 1;
     string quantity = 2;
-    string orders_count = 3;
+    uint64 orders_count = 3;
 }
 
 message Depth {

@@ -24,7 +24,7 @@ func main() {
 
 	client := oceanbookpb.NewOceanbookClient(conn)
 	_, err = client.NewOrderBook(ctx, &oceanbookpb.NewOrderBookRequest{
-		Pair: "BTC-USDT",
+		Pair: "BTC/USDT",
 	})
 
 	if err != nil {
@@ -32,9 +32,7 @@ func main() {
 
 	}
 
-	ordersCount := 10000
-
-	start := time.Now()
+	ordersCount := 10
 
 	var wg sync.WaitGroup
 	wg.Add(ordersCount)
@@ -50,7 +48,7 @@ func main() {
 
 		request := oceanbookpb.InsertOrderRequest{
 			Id:       uint64(i),
-			Pair:     "BTC-USDT",
+			Pair:     "BTC/USDT",
 			Side:     side,
 			Price:    "1.0",
 			Quantity: "2.0",
@@ -78,7 +76,10 @@ func main() {
 
 		wg.Done()
 	}
-	time.Sleep(5 * time.Second)
 	wg.Wait()
-	fmt.Println(time.Since(start))
+
+	depth, err := client.GetDepth(ctx, &oceanbookpb.GetDepthRequest{
+		Pair: "BTC/USDT",
+	})
+	fmt.Println(depth, err)
 }

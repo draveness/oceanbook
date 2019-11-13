@@ -50,7 +50,14 @@ func (s *Service) getOrderBook(pair string) (*orderbook.OrderBook, bool) {
 
 // GetDepth .
 func (s *Service) GetDepth(ctx context.Context, request *oceanbookpb.GetDepthRequest) (*oceanbookpb.Depth, error) {
-	return nil, nil
+	od, exists := s.getOrderBook(request.Pair)
+	if !exists {
+		return nil, ErrOrderBookNotFound
+	}
+
+	depth := od.GetDepth()
+
+	return depth.Serialize(), nil
 }
 
 // NewOrderBook .

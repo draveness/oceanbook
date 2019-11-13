@@ -26,6 +26,8 @@ type OrderBook struct {
 
 	pendingOrdersQueue *queue.OrderQueue
 	cancelOrdersQueue  map[uint64]*order.Order
+
+	depth *Depth
 }
 
 const (
@@ -44,6 +46,7 @@ func NewOrderBook(pair string) *OrderBook {
 		StopAsks:           rbt.NewWith(order.StopComparator),
 		pendingOrdersQueue: &orderQueue,
 		cancelOrdersQueue:  make(map[uint64]*order.Order, 1024),
+		depth:              NewDepth(pair, 16),
 	}
 }
 
@@ -119,6 +122,11 @@ func (od *OrderBook) insertOrder(newOrder *order.Order) []*trade.Trade {
 		trades = append(trades, newTrade)
 		log.Debugf("[oceanbook.orderbook] new trade %d with price %s", newTrade.ID, newTrade.Price)
 
+		od.depth.UpdatePriceLevel(&PriceLevel{
+			Side:  bestOrder.Side,
+			Price: newTrade.Quantity.Neg(),
+		})
+
 		if bestOrder.Filled() {
 			makerBooks.Remove(bestOrder.Key())
 			delete(od.cancelOrdersQueue, bestOrder.ID)
@@ -137,6 +145,10 @@ func (od *OrderBook) insertOrder(newOrder *order.Order) []*trade.Trade {
 		return trades
 	}
 
+	od.depth.UpdatePriceLevel(&PriceLevel{
+		Side:  newOrder.Side,
+		Price: newOrder.PendingQuantity(),
+	})
 	takerBooks.Put(newOrder.Key(), newOrder)
 	od.cancelOrdersQueue[newOrder.ID] = newOrder
 
@@ -239,4 +251,11 @@ func (od *OrderBook) CancelOrder(o *order.Order) {
 		od.Asks.Remove(targetOrder.Key())
 		od.Bids.Remove(targetOrder.Key())
 	}
+}
+
+// GetDepth returns the order book depth.
+func (od *OrderBook) GetDepth() *Depth {
+	od.RLock()
+	defer od.RUnlock()
+	return od.depth
 }
