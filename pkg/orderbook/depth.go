@@ -1,6 +1,7 @@
 package orderbook
 
 import (
+	"github.com/draveness/oceanbook/api/protobuf-spec/oceanbookpb"
 	"github.com/draveness/oceanbook/pkg/order"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"github.com/shopspring/decimal"
@@ -13,6 +14,15 @@ type PriceLevel struct {
 	Quantity decimal.Decimal
 	Side     order.Side
 	Count    uint64
+}
+
+// Serialize .
+func (p *PriceLevel) Serialize() *oceanbookpb.PriceLevel {
+	return &oceanbookpb.PriceLevel{
+		Price:       p.Price.String(),
+		Quantity:    p.Quantity.String(),
+		OrdersCount: p.Count,
+	}
 }
 
 // PriceLevelKey .
@@ -44,6 +54,27 @@ func NewDepth(pair string, scale int64) *Depth {
 		Scale: scale,
 		Bids:  rbt.NewWith(PriceLevelComparator),
 		Asks:  rbt.NewWith(PriceLevelComparator),
+	}
+}
+
+// Serialize returns a protobuf encoded depth.
+func (d *Depth) Serialize() *oceanbookpb.Depth {
+	bidValues := d.Bids.Values()
+	bids := make([]*oceanbookpb.PriceLevel, len(bidValues))
+	for i, bidValue := range bidValues {
+		bids[i] = bidValue.(*PriceLevel).Serialize()
+	}
+
+	askValues := d.Asks.Values()
+	asks := make([]*oceanbookpb.PriceLevel, len(askValues))
+	for i, askValue := range askValues {
+		asks[i] = askValue.(*PriceLevel).Serialize()
+	}
+
+	return &oceanbookpb.Depth{
+		Pair: d.Pair,
+		Bids: bids,
+		Asks: asks,
 	}
 }
 
