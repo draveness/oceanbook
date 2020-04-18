@@ -39,18 +39,18 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) getOrderBook(pair string) (*orderbook.OrderBook, bool) {
+func (s *Service) getOrderBook(symbol string) (*orderbook.OrderBook, bool) {
 	s.RLock()
 	defer s.RUnlock()
 
-	orderbook, ok := s.orderbooks[pair]
+	orderbook, ok := s.orderbooks[symbol]
 
 	return orderbook, ok
 }
 
 // GetDepth .
 func (s *Service) GetDepth(ctx context.Context, request *oceanbookpb.GetDepthRequest) (*oceanbookpb.Depth, error) {
-	od, exists := s.getOrderBook(request.Pair)
+	od, exists := s.getOrderBook(request.Symbol)
 	if !exists {
 		return nil, ErrOrderBookNotFound
 	}
@@ -62,7 +62,7 @@ func (s *Service) GetDepth(ctx context.Context, request *oceanbookpb.GetDepthReq
 
 // NewOrderBook .
 func (s *Service) NewOrderBook(ctx context.Context, request *oceanbookpb.NewOrderBookRequest) (*oceanbookpb.NewOrderBookResponse, error) {
-	_, exists := s.getOrderBook(request.Pair)
+	_, exists := s.getOrderBook(request.Symbol)
 	if exists {
 		return &oceanbookpb.NewOrderBookResponse{}, nil
 	}
@@ -70,16 +70,16 @@ func (s *Service) NewOrderBook(ctx context.Context, request *oceanbookpb.NewOrde
 	s.Lock()
 	defer s.Unlock()
 
-	s.orderbooks[request.Pair] = orderbook.NewOrderBook(request.Pair)
+	s.orderbooks[request.Symbol] = orderbook.NewOrderBook(request.Symbol)
 
-	log.Infof("[oceanbook.liquidity] new order book with pair %s", request.Pair)
+	log.Infof("[oceanbook.liquidity] new order book with symbol %s", request.Symbol)
 
 	return &oceanbookpb.NewOrderBookResponse{}, nil
 }
 
 // InsertOrder .
 func (s *Service) InsertOrder(request *oceanbookpb.InsertOrderRequest, stream oceanbookpb.Oceanbook_InsertOrderServer) error {
-	od, exists := s.getOrderBook(request.Pair)
+	od, exists := s.getOrderBook(request.Symbol)
 	if !exists {
 		return ErrOrderBookNotFound
 	}
@@ -122,7 +122,7 @@ func (s *Service) InsertOrder(request *oceanbookpb.InsertOrderRequest, stream oc
 
 // CancelOrder .
 func (s *Service) CancelOrder(ctx context.Context, request *oceanbookpb.CancelOrderRequest) (*oceanbookpb.CancelOrderResponse, error) {
-	od, exists := s.getOrderBook(request.Pair)
+	od, exists := s.getOrderBook(request.Symbol)
 	if !exists {
 		return nil, ErrOrderBookNotFound
 	}

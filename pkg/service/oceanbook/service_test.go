@@ -13,16 +13,16 @@ func TestNewOrderBook(t *testing.T) {
 	svc := NewService()
 
 	request := &oceanbookpb.NewOrderBookRequest{
-		Pair: "BTC/CNY",
+		Symbol: "BTC/CNY",
 	}
 
 	response, err := svc.NewOrderBook(context.Background(), request)
 
-	orderbook, ok := svc.orderbooks[request.Pair]
+	orderbook, ok := svc.orderbooks[request.Symbol]
 	assert.Nil(t, err)
 	assert.Equal(t, &oceanbookpb.NewOrderBookResponse{}, response)
 	assert.True(t, ok)
-	assert.Equal(t, request.Pair, orderbook.Pair, "orderbook with pair %s exists", request.Pair)
+	assert.Equal(t, request.Symbol, orderbook.Symbol, "orderbook with symbol %s exists", request.Symbol)
 
 	response, err = svc.NewOrderBook(context.Background(), request)
 	assert.Nil(t, err)
@@ -50,7 +50,7 @@ func TestInsertOrder(t *testing.T) {
 	svc := NewService()
 
 	request := &oceanbookpb.NewOrderBookRequest{
-		Pair: "BTC/CNY",
+		Symbol: "BTC/CNY",
 	}
 
 	newOrderBookResponse, err := svc.NewOrderBook(context.Background(), request)
@@ -62,7 +62,7 @@ func TestInsertOrder(t *testing.T) {
 		Id:       1,
 		Price:    "1.0",
 		Quantity: "2.0",
-		Pair:     "BTC/CNY",
+		Symbol:   "BTC/CNY",
 		Side:     oceanbookpb.Order_ASK,
 	}, stream)
 	assert.Nil(t, err)
@@ -72,7 +72,7 @@ func TestInsertOrder(t *testing.T) {
 		Id:       2,
 		Price:    "2.0",
 		Quantity: "1.0",
-		Pair:     "BTC/CNY",
+		Symbol:   "BTC/CNY",
 		Side:     oceanbookpb.Order_BID,
 	}, stream)
 	assert.Nil(t, err)
@@ -91,13 +91,13 @@ func TestCancelOrder(t *testing.T) {
 
 	cancelOrderResponse, err := svc.CancelOrder(context.Background(), &oceanbookpb.CancelOrderRequest{
 		OrderId: 1,
-		Pair:    "BTC/CNY",
+		Symbol:  "BTC/CNY",
 	})
 	assert.Equal(t, ErrOrderBookNotFound, err)
 	assert.Nil(t, cancelOrderResponse)
 
 	request := &oceanbookpb.NewOrderBookRequest{
-		Pair: "BTC/CNY",
+		Symbol: "BTC/CNY",
 	}
 
 	newOrderBookResponse, err := svc.NewOrderBook(context.Background(), request)
@@ -109,7 +109,7 @@ func TestCancelOrder(t *testing.T) {
 		Id:       1,
 		Price:    "1.0",
 		Quantity: "2.0",
-		Pair:     "BTC/CNY",
+		Symbol:   "BTC/CNY",
 		Side:     oceanbookpb.Order_ASK,
 	}, stream)
 	assert.Nil(t, err)
@@ -117,12 +117,12 @@ func TestCancelOrder(t *testing.T) {
 
 	cancelOrderResponse, err = svc.CancelOrder(context.Background(), &oceanbookpb.CancelOrderRequest{
 		OrderId: 1,
-		Pair:    "BTC/CNY",
+		Symbol:  "BTC/CNY",
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, &oceanbookpb.CancelOrderResponse{}, cancelOrderResponse)
 
-	orderbook, _ := svc.orderbooks[request.Pair]
+	orderbook, _ := svc.orderbooks[request.Symbol]
 	assert.Equal(t, 0, orderbook.Bids.Size())
 	assert.Equal(t, 0, orderbook.Asks.Size())
 }

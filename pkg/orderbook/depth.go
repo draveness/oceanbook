@@ -41,19 +41,19 @@ func (pl *PriceLevel) Key() *PriceLevelKey {
 
 // Depth .
 type Depth struct {
-	Pair  string
-	Scale int64
-	Bids  *rbt.Tree
-	Asks  *rbt.Tree
+	Symbol string
+	Scale  int64
+	Bids   *rbt.Tree
+	Asks   *rbt.Tree
 }
 
 // NewDepth returns a depth with specific scale.
-func NewDepth(pair string, scale int64) *Depth {
+func NewDepth(symbol string, scale int64) *Depth {
 	return &Depth{
-		Pair:  pair,
-		Scale: scale,
-		Bids:  rbt.NewWith(PriceLevelComparator),
-		Asks:  rbt.NewWith(PriceLevelComparator),
+		Symbol: symbol,
+		Scale:  scale,
+		Bids:   rbt.NewWith(PriceLevelComparator),
+		Asks:   rbt.NewWith(PriceLevelComparator),
 	}
 }
 
@@ -72,9 +72,9 @@ func (d *Depth) Serialize() *oceanbookpb.Depth {
 	}
 
 	return &oceanbookpb.Depth{
-		Pair: d.Pair,
-		Bids: bids,
-		Asks: asks,
+		Symbol: d.Symbol,
+		Bids:   bids,
+		Asks:   asks,
 	}
 }
 

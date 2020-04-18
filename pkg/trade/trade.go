@@ -8,7 +8,7 @@ import (
 // Trade .
 type Trade struct {
 	ID       uint64
-	Pair     string
+	Symbol   string
 	Price    decimal.Decimal
 	Quantity decimal.Decimal
 	TakerID  uint64
@@ -19,7 +19,7 @@ type Trade struct {
 func (t *Trade) Serialize() *oceanbookpb.Trade {
 	return &oceanbookpb.Trade{
 		Id:       t.ID,
-		Pair:     t.Pair,
+		Symbol:   t.Symbol,
 		Price:    t.Price.String(),
 		Quantity: t.Quantity.String(),
 		TakerId:  t.TakerID,

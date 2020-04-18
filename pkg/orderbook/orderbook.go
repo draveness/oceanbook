@@ -16,8 +16,8 @@ import (
 // OrderBook is the order book.
 type OrderBook struct {
 	sync.RWMutex
-	Pair  string
-	Price decimal.Decimal
+	Symbol string
+	Price  decimal.Decimal
 
 	Bids     *rbt.Tree
 	Asks     *rbt.Tree
@@ -36,17 +36,17 @@ const (
 )
 
 // NewOrderBook returns a pointer to an orderbook.
-func NewOrderBook(pair string) *OrderBook {
+func NewOrderBook(symbol string) *OrderBook {
 	orderQueue := queue.NewOrderQueue(pendingOrdersCap)
 	return &OrderBook{
-		Pair:               pair,
+		Symbol:             symbol,
 		Bids:               rbt.NewWith(order.Comparator),
 		Asks:               rbt.NewWith(order.Comparator),
 		StopBids:           rbt.NewWith(order.StopComparator),
 		StopAsks:           rbt.NewWith(order.StopComparator),
 		pendingOrdersQueue: &orderQueue,
 		cancelOrdersQueue:  make(map[uint64]*order.Order, 1024),
-		depth:              NewDepth(pair, 16),
+		depth:              NewDepth(symbol, 16),
 	}
 }
 

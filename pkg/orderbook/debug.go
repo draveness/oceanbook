@@ -41,7 +41,7 @@ func (od *OrderBook) String() string {
 		}
 	}
 
-	str := fmt.Sprintf("OrderBook: %s\n", od.Pair)
+	str := fmt.Sprintf("OrderBook: %s\n", od.Symbol)
 
 	var border string
 	if maxLength > 19 {
