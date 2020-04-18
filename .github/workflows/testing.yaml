@@ -1,14 +1,11 @@
 name: Testing
 
-on:
-  push:
-    branches:
-      - "*"
+on: [push]
 
 jobs:
 
   build:
-    name: Build
+    name: Testing
     runs-on: ubuntu-latest
     steps:
 
