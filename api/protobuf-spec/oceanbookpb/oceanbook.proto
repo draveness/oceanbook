@@ -20,7 +20,7 @@ message Order {
     string price = 2;
     string quantity = 3;
     Side side = 4;
-    string pair = 5;
+    string symbol = 5;
     State state = 6;
     string stop_price = 7;
     bool immediate_or_cancel = 8;
@@ -28,7 +28,7 @@ message Order {
 
 message Trade {
     uint64 id = 1;
-    string pair = 2;
+    string symbol = 2;
     string price = 3;
     string quantity = 4;
     uint64 taker_id = 5;
@@ -41,28 +41,28 @@ message InsertOrderRequest {
     string price = 2;
     string quantity = 3;
     Order.Side side = 4;
-    string pair = 5;
+    string symbol = 5;
     string stop_price = 6;
     bool immediate_or_cancel = 7;
 }
 
 message CancelOrderRequest {
     uint64 order_id = 1;
-    string pair = 2;
+    string symbol = 2;
 }
 
 message CancelOrderResponse {
 }
 
 message NewOrderBookRequest {
-    string pair = 1;
+    string symbol = 1;
 }
 
 message NewOrderBookResponse{
 }
 
 message GetDepthRequest {
-    string pair = 1;
+    string symbol = 1;
 }
 
 message PriceLevel {
@@ -72,7 +72,7 @@ message PriceLevel {
 }
 
 message Depth {
-    string pair = 1;
+    string symbol = 1;
     repeated PriceLevel bids = 2;
     repeated PriceLevel asks = 3;
 }

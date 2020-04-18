@@ -24,7 +24,7 @@ func main() {
 
 	client := oceanbookpb.NewOceanbookClient(conn)
 	_, err = client.NewOrderBook(ctx, &oceanbookpb.NewOrderBookRequest{
-		Pair: "BTC/USDT",
+		Symbol: "BTC/USDT",
 	})
 
 	if err != nil {
@@ -48,7 +48,7 @@ func main() {
 
 		request := oceanbookpb.InsertOrderRequest{
 			Id:       uint64(i),
-			Pair:     "BTC/USDT",
+			Symbol:   "BTC/USDT",
 			Side:     side,
 			Price:    "1.0",
 			Quantity: "2.0",
@@ -79,7 +79,7 @@ func main() {
 	wg.Wait()
 
 	depth, err := client.GetDepth(ctx, &oceanbookpb.GetDepthRequest{
-		Pair: "BTC/USDT",
+		Symbol: "BTC/USDT",
 	})
 	fmt.Println(depth, err)
 }
