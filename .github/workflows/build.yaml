@@ -24,6 +24,6 @@ jobs:
     - name: Get dependencies
       run: |
         go mod download
-    
+
     - name: Build
       run: go build -v cmd/oceanbook/main.go
