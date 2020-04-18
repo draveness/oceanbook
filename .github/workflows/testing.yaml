@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Set up Go 1.14
+    - name: Setup Go 1.14
       uses: actions/setup-go@v1
       with:
         go-version: 1.14
@@ -28,6 +28,3 @@ jobs:
     - name: Test
       run: |
         go test ./... -v
-
-    - name: Build
-      run: go build -v cmd/oceanbook/main.go
