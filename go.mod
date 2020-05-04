@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/emirpasic/gods v1.12.0
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.1
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/logrusorgru/aurora v0.0.0-20181002194514-a7b3b318ed4e
 	github.com/prometheus/client_golang v0.9.2 // indirect
